@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Number Plate Detection</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-4xl mx-auto space-y-8">
+    <div class="bg-white p-6 rounded-xl shadow text-center">
+      <h1 class="text-3xl font-bold mb-4">Number Plate Detection</h1>
+      <input type="file" id="imageInput" accept="image/*" class="mb-4" />
+      <button onclick="uploadImage()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Detect
+      </button>
+      <div id="loading" class="text-gray-500 mt-3 hidden">Detecting...</div>
+      <div id="resultText" class="text-xl font-semibold text-green-600 mt-4"></div>
+      <div id="outputImages" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4"></div>
+    </div>
+
+    <!-- Detection History -->
+    <div class="bg-white p-6 rounded-xl shadow">
+      <h2 class="text-xl font-bold mb-4">Detection History</h2>
+      {% if history %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for item in history %}
+            <div class="border rounded-xl p-3 shadow">
+              <p class="font-semibold text-sm mb-2">Detected: {{ item.text }}</p>
+              {% for img in item.images %}
+                <img src="{{ img }}" class="rounded mb-2 shadow" />
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-gray-600">No detections yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    async function uploadImage() {
+      const input = document.getElementById('imageInput');
+      const file = input.files[0];
+      if (!file) return alert('Select an image first.');
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('resultText').textContent = '';
+      document.getElementById('outputImages').innerHTML = '';
+
+      try {
+        const response = await fetch('/predict', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        document.getElementById('resultText').textContent = 'Detected Plate: ' + data.text;
+
+        data.images.forEach((imgUrl) => {
+          const img = document.createElement('img');
+          img.src = imgUrl;
+          img.className = "rounded shadow";
+          document.getElementById('outputImages').appendChild(img);
+        });
+
+        window.location.reload(); // Refresh to update history
+
+      } catch (err) {
+        alert('Error detecting plate.');
+        console.error(err);
+      }
+
+      document.getElementById('loading').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
